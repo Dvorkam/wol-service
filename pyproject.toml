@@ -1,0 +1,31 @@
+[project]
+name = "wol-service"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "DvorkaM", email = "DvorkaM@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "argon2>=0.1.10",
+    "fastapi>=0.120.4",
+    "jinja2>=3.1.6",
+    "uvicorn[standard]>=0.38.0",
+    "passlib>=1.7.4",
+    "python-jose>=1.7.0",
+    "python-multipart>=0.0.20",
+]
+
+[project.scripts]
+wol-service = "wol_service:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8.4.2",
+]
