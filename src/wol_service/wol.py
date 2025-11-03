@@ -1,28 +1,24 @@
 import socket
+import re
 
-def wake_on_lan(mac_address:str, ip_address="255.255.255.255", port=9):
+def wake_on_lan(mac_address:str, ip_address:str, port=9):
     """
     Wake up a device using Wake on LAN.
     
     Args:
         mac_address (str): MAC address of the device to wake (format: "00:11:22:33:44:55")
-        ip_address (str): Broadcast address (default: "255.255.255.255")
+        ip_address (str): IP address to send the magic packet to
         port (int): Port to send the magic packet (default: 9)
     
     Returns:
         bool: True if successful, False otherwise
     """
     
-    # Remove any separators (colons, dashes, etc.) from MAC address
-    mac_address = mac_address.replace(':', '').replace('-', '')
     
-    # Convert MAC address to bytes
-    mac_bytes = bytes.fromhex(mac_address)
+    if validate_mac_address(mac_address) == False:
+        raise ValueError("Invalid MAC address format")
     
-    # Create magic packet
-    # First 6 bytes are 0xFF
-    # Next 16 repetitions of the MAC address
-    magic_packet = b'\xff' * 6 + mac_bytes * 16
+    magic_packet = create_magic_packet(mac_address)
     
     # Create socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -37,7 +33,7 @@ def wake_on_lan(mac_address:str, ip_address="255.255.255.255", port=9):
     finally:
         sock.close()
 
-def validate_mac_address(mac_address):
+def validate_mac_address(mac_address) -> bool:
     """
     Validate MAC address format.
     
@@ -47,15 +43,25 @@ def validate_mac_address(mac_address):
     Returns:
         bool: True if valid, False otherwise
     """
-    # Remove any separators
-    mac_address = mac_address.replace(':', '').replace('-', '')
+    valid_mac_address= re.compile(r'^([0-9A-Fa-f]{2}([-:]?)){5}([0-9A-Fa-f]{2})$|^([0-9A-Fa-f]{12})$')
+    return bool(valid_mac_address.match(mac_address))
+
+def create_magic_packet(valid_mac_address: str) -> bytes:
+    """
+    Create a magic packet for Wake on LAN.
     
-    # Check if it's a valid MAC address (12 hexadecimal characters)
-    if len(mac_address) != 12:
-        return False
+    Args:
+        mac_address (str): MAC address of the device to wake (format: "00:11:22:33:44:55")
+        
+    Returns:
+        bytes: The magic packet
+    """
+    # Remove any separators from MAC address
+    valid_mac_address = valid_mac_address.replace(":", "").replace("-", "")
     
-    try:
-        int(mac_address, 16)
-        return True
-    except ValueError:
-        return False
+    # Convert MAC address to bytes
+    mac_bytes = bytes.fromhex(valid_mac_address)
+    
+    # Create magic packet
+    magic_packet = b'\xff' * 6 + mac_bytes * 16
+    return magic_packet
