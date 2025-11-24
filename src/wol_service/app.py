@@ -35,6 +35,8 @@ AUTH_ENABLED = bool(USERS)
 HOSTS_PATH = os.getenv("WOL_HOSTS_PATH", "hosts.json")
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").lower() in ("1", "true", "yes", "on")
 COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax")
+CONTAINER = os.path.exists("/.dockerenv") or os.getenv("CONTAINER", "false").lower() in ("1", "true", "yes", "on")
+DATA_DIR = "/data"
 
 
 def _enforce_csrf(request: Request, csrf_token: str | None) -> None:
@@ -58,10 +60,13 @@ async def _optional_user(request: Request):
 
 
 def _warn_if_ephemeral_storage():
-    if not os.path.exists("/.dockerenv"):
+    targets_data_dir = str(HOSTS_PATH).startswith(DATA_DIR) or str(USERS_PATH).startswith(DATA_DIR)
+    if not (CONTAINER or targets_data_dir):
         return
-    if not os.path.ismount("/data"):
+    if not os.path.ismount(DATA_DIR):
         print("Warning: /data is not a mounted volume; users/hosts may be lost when the container stops.")
+    elif targets_data_dir:
+        print("Info: /data is a mounted volume; users/hosts will persist across restarts.")
 
 
 @app.get("/", response_class=HTMLResponse)

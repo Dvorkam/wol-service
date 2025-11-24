@@ -121,3 +121,18 @@ def test_no_auth_allows_direct_access(tmp_path, monkeypatch):
     monkeypatch.setenv("ADMIN_PASSWORD", ADMIN_PASS)
     importlib.reload(auth_module)
     importlib.reload(app_module)
+
+
+def test_warn_if_data_not_mounted(monkeypatch, capsys):
+    import importlib
+    import wol_service.app as app_module
+
+    monkeypatch.setenv("WOL_HOSTS_PATH", "/data/hosts.json")
+    monkeypatch.setenv("USERS_PATH", "/data/users.json")
+    importlib.reload(app_module)
+
+    monkeypatch.setattr(app_module, "CONTAINER", True)
+    monkeypatch.setattr(app_module.os.path, "ismount", lambda p: False)
+    app_module._warn_if_ephemeral_storage()
+    captured = capsys.readouterr()
+    assert "not a mounted volume" in captured.out
