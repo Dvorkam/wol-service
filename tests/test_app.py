@@ -123,7 +123,7 @@ def test_no_auth_allows_direct_access(tmp_path, monkeypatch):
     importlib.reload(app_module)
 
 
-def test_warn_if_data_not_mounted(monkeypatch, capsys):
+def test_warn_if_data_not_mounted(monkeypatch, caplog):
     import importlib
     import wol_service.app as app_module
 
@@ -133,6 +133,6 @@ def test_warn_if_data_not_mounted(monkeypatch, capsys):
 
     monkeypatch.setattr(app_module, "CONTAINER", True)
     monkeypatch.setattr(app_module.os.path, "ismount", lambda p: False)
+    caplog.set_level("WARNING")
     app_module._warn_if_ephemeral_storage()
-    captured = capsys.readouterr()
-    assert "not a mounted volume" in captured.out
+    assert any("not a mounted volume" in rec.message for rec in caplog.records)

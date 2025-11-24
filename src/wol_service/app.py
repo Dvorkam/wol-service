@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List
 
@@ -25,6 +26,9 @@ from wol_service.wol import validate_ip_address, validate_mac_address, validate_
 # Initialize FastAPI app
 app = FastAPI(title="Wake on LAN Service")
 templates = Jinja2Templates(directory="src/wol_service/templates")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=LOG_LEVEL)
+logger = logging.getLogger("wol_service")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="src/wol_service/static"), name="static")
@@ -64,9 +68,9 @@ def _warn_if_ephemeral_storage():
     if not (CONTAINER or targets_data_dir):
         return
     if not os.path.ismount(DATA_DIR):
-        print("Warning: /data is not a mounted volume; users/hosts may be lost when the container stops.")
+        logger.warning("/data is not a mounted volume; users/hosts may be lost when the container stops.")
     elif targets_data_dir:
-        print("Info: /data is a mounted volume; users/hosts will persist across restarts.")
+        logger.info("/data is a mounted volume; users/hosts will persist across restarts.")
 
 
 @app.get("/", response_class=HTMLResponse)
