@@ -87,7 +87,15 @@ When authentication is disabled, `/login` redirects to `/wake`, and the wake/hos
 1. **Run the Docker container:**
 
    ```bash
-   docker run -d -p 25644:25644 --name wol-service-container wol-service
+   mkdir -p data
+   docker run -d -p 25644:25644 --name wol-service-container \
+     -e SECRET_KEY=change-me \
+     -e ADMIN_USERNAME=admin \
+     -e ADMIN_PASSWORD=adminpass \
+     -e WOL_HOSTS_PATH=/data/hosts.json \
+     -e USERS_PATH=/data/users.json \
+     -v "$(pwd)/data:/data" \
+     wol-service
    ```
 
 2. **Access the web interface:**
@@ -139,4 +147,4 @@ Helper scripts:
 
 - `scripts/run_tests.sh` — runs the test suite via uv.
 - `scripts/docker_build.sh` — builds a local Docker image (set `IMAGE_TAG` to override the tag).
-- `scripts/docker_compose_up.sh` — wrapper for `docker compose up --build`.
+- `scripts/docker_compose_up.sh` — wrapper for `docker compose up --build` (compose mounts `./data` to persist hosts/users).
