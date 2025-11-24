@@ -1,10 +1,11 @@
+import hashlib
 import json
 import os
 import secrets
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Tuple
 
 from fastapi import Depends, HTTPException, Request
 from jose import JWTError, jwt
@@ -27,6 +28,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 TOKEN_ISSUER = os.getenv("TOKEN_ISSUER", "wol-service")
 TOKEN_AUDIENCE = os.getenv("TOKEN_AUDIENCE", "wol-service-users")
 USERS_PATH = Path(os.getenv("USERS_PATH", "users.json"))
+SECRET_FINGERPRINT = hashlib.sha256(SECRET_KEY.encode("utf-8")).hexdigest()
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -98,18 +100,21 @@ def _atomic_write_json(path: Path, data) -> None:
     os.replace(tmp, path)
 
 
-def _load_users_from_file(path: Path) -> Dict[str, dict]:
+def _load_users_from_file(path: Path) -> Tuple[Dict[str, dict], Dict[str, str]]:
     if not path.exists():
-        return {}
+        return {}, {}
     with open(path, "r", encoding="utf-8") as f:
         payload = json.load(f)
-    if isinstance(payload, dict) and "users" in payload:
-        payload = payload["users"]
+    meta = {}
     if isinstance(payload, dict):
-        return payload
+        meta = payload.get("_meta") or {}
+        if "users" in payload:
+            payload = payload["users"]
+    if isinstance(payload, dict):
+        return payload, meta
     if isinstance(payload, list):
-        return {u["username"]: u for u in payload if isinstance(u, dict) and "username" in u}
-    return {}
+        return {u["username"]: u for u in payload if isinstance(u, dict) and "username" in u}, meta
+    return {}, meta
 
 
 def _bootstrap_admin_from_env() -> Dict[str, dict]:
@@ -138,8 +143,12 @@ def load_users() -> Dict[str, dict]:
     disable_flag = os.getenv("ADMIN_USERNAME") == "" and os.getenv("ADMIN_PASSWORD") == ""
     if disable_flag:
         users = {}
+        meta = {}
     else:
-        users = _load_users_from_file(USERS_PATH)
+        users, meta = _load_users_from_file(USERS_PATH)
+        stored_fp = meta.get("secret_fingerprint")
+        if stored_fp and stored_fp != SECRET_FINGERPRINT:
+            print("Warning: SECRET_KEY differs from the key used when users.json was written; existing sessions will be invalid.")
         env_users = _bootstrap_admin_from_env()
         # Merge env bootstrap without overwriting persisted users
         for username, user in env_users.items():
@@ -147,7 +156,10 @@ def load_users() -> Dict[str, dict]:
                 continue
             users.setdefault(username, user)
         if env_users and "__DISABLE__" not in env_users and env_users:
-            _atomic_write_json(USERS_PATH, users)
+            _atomic_write_json(
+                USERS_PATH,
+                {"users": users, "_meta": {"secret_fingerprint": SECRET_FINGERPRINT}},
+            )
     _clear_admin_env()
     if not users:
         print("Warning: No users configured. Authentication is disabled; anyone can trigger wake/host actions.")

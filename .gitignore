@@ -64,6 +64,9 @@ secrets.json
 hosts.json
 users.json
 
+#Local data
+data/
+
 # Logs
 *.log
 

@@ -10,6 +10,7 @@ from starlette.status import HTTP_401_UNAUTHORIZED
 
 from wol_service.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
+    USERS_PATH,
     authenticate_user,
     create_access_token,
     get_user_from_cookie,
@@ -54,6 +55,13 @@ async def _optional_user(request: Request):
     if not AUTH_ENABLED:
         return "anonymous"
     return await get_user_from_cookie(request)
+
+
+def _warn_if_ephemeral_storage():
+    if not os.path.exists("/.dockerenv"):
+        return
+    if not os.path.ismount("/data"):
+        print("Warning: /data is not a mounted volume; users/hosts may be lost when the container stops.")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -148,6 +156,7 @@ async def logout():
 def _startup():
     ensure_parent_dir(HOSTS_PATH)
     # If file missing, it’ll be created on first save
+    _warn_if_ephemeral_storage()
 
 
 def get_hosts() -> List[Host]:

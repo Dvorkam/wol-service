@@ -1,10 +1,12 @@
+import hashlib
+import json
 import importlib
 import os
 
 import pytest
 
 import wol_service.auth as auth
-from wol_service.auth import get_password_hash, load_users, verify_password
+from wol_service.auth import SECRET_FINGERPRINT, get_password_hash, load_users, verify_password
 
 
 def test_password_hashing():
@@ -25,6 +27,9 @@ def test_load_users_bootstraps_admin(tmp_path, monkeypatch):
     # Ensure env cleared for security
     assert os.environ.get("ADMIN_USERNAME") is None
     assert os.environ.get("ADMIN_PASSWORD") is None
+    # Ensure fingerprint saved
+    payload = (tmp_path / "users.json").read_text(encoding="utf-8")
+    assert SECRET_FINGERPRINT in payload
 
 
 def test_missing_credentials_raise(monkeypatch, tmp_path):
@@ -46,3 +51,18 @@ def test_empty_env_disables_even_with_persisted_users(monkeypatch, tmp_path):
     importlib.reload(auth)
     users = load_users()
     assert users == {}
+
+
+def test_secret_mismatch_warns(monkeypatch, tmp_path, capsys):
+    users_path = tmp_path / "users.json"
+    original_fp = hashlib.sha256(b"oldsecret").hexdigest()
+    users_path.write_text(
+        json.dumps({"users": {"user": {"username": "user", "hashed_password": "hash"}}, "_meta": {"secret_fingerprint": original_fp}}),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("USERS_PATH", str(users_path))
+    monkeypatch.setenv("SECRET_KEY", "newsecret")
+    importlib.reload(auth)
+    load_users()
+    captured = capsys.readouterr()
+    assert "SECRET_KEY differs" in captured.out
