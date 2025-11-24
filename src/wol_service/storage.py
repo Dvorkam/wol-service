@@ -9,7 +9,7 @@ class Host(TypedDict):
     port: int         # usually 9
 
 DEFAULTS = [
-    {"name":"Example PC","mac":"A8-A1-59-07-39-4D","ip":"192.168.88.148","port":9}
+    # intentionally empty to avoid shipping live-looking host data
 ]
 
 def _atomic_write(path: str, data: str) -> None:

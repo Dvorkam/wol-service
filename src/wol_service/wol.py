@@ -1,7 +1,8 @@
-import socket
+import ipaddress
 import re
+import socket
 
-def wake_on_lan(mac_address:str, ip_address:str, port=9):
+def wake_on_lan(mac_address: str, ip_address: str, port: int = 9):
     """
     Wake up a device using Wake on LAN.
     
@@ -14,9 +15,13 @@ def wake_on_lan(mac_address:str, ip_address:str, port=9):
         bool: True if successful, False otherwise
     """
     
-    
-    if validate_mac_address(mac_address) == False:
+    if not validate_mac_address(mac_address):
         raise ValueError("Invalid MAC address format")
+    if not validate_ip_address(ip_address):
+        raise ValueError("Invalid IP address or broadcast address")
+    port = int(port)
+    if not validate_port(port):
+        raise ValueError("Invalid port number")
     
     magic_packet = create_magic_packet(mac_address)
     
@@ -26,7 +31,7 @@ def wake_on_lan(mac_address:str, ip_address:str, port=9):
     
     try:
         # Send magic packet
-        sock.sendto(magic_packet, (ip_address, port))
+        sock.sendto(magic_packet, (ip_address, int(port)))
         return True
     except Exception as e:
         raise Exception(f"Failed to send magic packet: {str(e)}")
@@ -65,3 +70,24 @@ def create_magic_packet(valid_mac_address: str) -> bytes:
     # Create magic packet
     magic_packet = b'\xff' * 6 + mac_bytes * 16
     return magic_packet
+
+def validate_ip_address(value: str) -> bool:
+    """Allow IPv4 unicast or broadcast addresses."""
+    try:
+        ip = ipaddress.ip_address(value)
+        # Broadcast is not directly detected by ip_address, so allow IPv4 all-ones
+        if ip.version == 4:
+            return True
+        return False
+    except ValueError:
+        # Also permit dotted broadcast like 255.255.255.255
+        if value == "255.255.255.255":
+            return True
+        return False
+
+def validate_port(port: int) -> bool:
+    try:
+        port = int(port)
+    except (TypeError, ValueError):
+        return False
+    return 1 <= port <= 65535
