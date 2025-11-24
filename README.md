@@ -34,7 +34,7 @@ This is a simple Wakeup on LAN (WoL) service built using FastAPI and Python. It 
    Then, run the following command to install all necessary Python dependencies:
 
    ```bash
-   uv install -r requirements.txt
+   uv install -e .
    ```
 
 3. **Build Docker container:**
@@ -43,12 +43,39 @@ This is a simple Wakeup on LAN (WoL) service built using FastAPI and Python. It 
    docker build -t wol-service .
    ```
 
+## Default Admin Account
+
+The service can be configured with a default admin account using environment variables (recommended):
+
+- `ADMIN_USERNAME`: Username for the default admin account
+- `ADMIN_PASSWORD`: Password for the default admin account
+- `SECRET_KEY` **(required)**: Used to sign JWT cookies. The app refuses to start without it.
+- `USERS_PATH` (default: `users.json`): Location where hashed user records are stored. Admin credentials from the environment are written here on first boot.
+- `WOL_HOSTS_PATH` (default: `hosts.json`): Location for saved hosts.
+- `COOKIE_SECURE` (default: `true`): Set to `false` for HTTP-only local testing so cookies are sent without TLS.
+- `COOKIE_SAMESITE` (default: `lax`): Adjust only if your deployment requires it.
+
+The default admin account is created during application startup and the environment variables are automatically removed for security reasons. This is useful for initial setup in containerized environments.
+
+*Note: For security reasons, the ADMIN_USERNAME and ADMIN_PASSWORD environment variables are automatically removed from the environment after creating the default admin account.*
+*The application will fail fast if `SECRET_KEY` is missing so tokens cannot be forged.*
+
+If you choose to run **without** `ADMIN_USERNAME`/`ADMIN_PASSWORD`, authentication and CSRF protections are disabled and all endpoints become open. A warning is logged to remind you this mode is unsafe for shared networks.
+If you explicitly set both to empty strings (e.g., `ADMIN_USERNAME= ADMIN_PASSWORD=`) any persisted users are ignored and the app runs unauthenticated for that process only.
+
+### CSRF protection
+
+Login issues an `access_token` (HTTP-only) and a `csrf_token` (readable by the browser). All state-changing requests (`/wake`, `/api/hosts` POST/DELETE) must include the CSRF token via a hidden form field or `X-CSRF-Token` header; the UI pages do this automatically.
+When authentication is disabled, `/login` redirects to `/wake`, and the wake/host endpoints are open (but this is unsafe outside a trusted LAN).
 ## Running the Application Locally
 
-1. **Start the FastAPI application locally:**
+1. **Start the FastAPI application locally (remember a SECRET_KEY and credentials are required):**
 
    ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 25644
+   SECRET_KEY=change-me \
+   ADMIN_USERNAME=admin \
+   ADMIN_PASSWORD=adminpass \
+   uv run uvicorn wol_service.app:app --reload --host 0.0.0.0 --port 25644
    ```
 
 2. **Access the web interface:**
@@ -99,3 +126,11 @@ This project uses GitHub Actions for continuous integration and deployment:
    ```
 
 5. Open a pull request in GitHub.
+
+## Testing
+
+Run the suite (using the existing `.venv`) with uv:
+
+```bash
+UV_CACHE_DIR=.uv-cache uv run --no-sync pytest
+```

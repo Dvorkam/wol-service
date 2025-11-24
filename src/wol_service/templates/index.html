@@ -20,6 +20,30 @@
     <h1>Wake on LAN Service</h1>
     <p>Welcome to the Wake on LAN service. Use the form below to wake devices on your network.</p>
 
+    <div class="device-form">
+      <h2>Wake a device</h2>
+      <form id="wakeForm" class="wake-form">
+        <div class="row">
+          <div class="form-group">
+            <label for="mac_address">MAC address</label>
+            <input id="mac_address" name="mac_address" placeholder="AA:BB:CC:DD:EE:FF" required>
+          </div>
+          <div class="form-group">
+            <label for="ip_address">IP / Broadcast</label>
+            <input id="ip_address" name="ip_address" placeholder="255.255.255.255" value="255.255.255.255" required>
+          </div>
+          <div class="form-group" style="max-width:120px">
+            <label for="port_number">Port</label>
+            <input id="port_number" name="port_number" type="number" value="9" required>
+          </div>
+        </div>
+        <input type="hidden" name="csrf_token" id="csrf_token_field">
+        <div class="inline-btns">
+          <button type="submit" class="btn">Send magic packet</button>
+        </div>
+      </form>
+    </div>
+
     <!-- Saved Hosts -->
     <div class="device-form">
       <h2>Saved hosts</h2>
@@ -70,9 +94,11 @@
         <h3>Delete host</h3>
         <form id="delHostForm" class="wake-form">
           <div class="row">
-            <div class="form-group">
-              <label for="del_name">Name</label>
-              <input id="del_name" name="name" placeholder="Gaming PC" required>
+            <div class="form-group" style="min-width:260px">
+              <label for="delHostSelect">Choose host to delete:</label>
+              <select id="delHostSelect" name="name">
+                <!-- options injected by JS -->
+              </select>
             </div>
           </div>
           <div class="inline-btns" style="margin-top:.5rem">
@@ -93,8 +119,36 @@
     // ---- Helpers ----
     const $ = (sel) => document.querySelector(sel);
 
+    function getCookie(name) {
+      return document.cookie.split('; ').map(v => v.split('=')).reduce((acc, [k, v]) => {
+        acc[k] = v; return acc;
+      }, {})[name];
+    }
+
+    function getCsrfToken() {
+      return getCookie('csrf_token') || '';
+    }
+
+    function attachCsrf(data) {
+      const token = getCsrfToken();
+      if (token) data.append('csrf_token', token);
+    }
+
+    function showResult(kind, message) {
+      const el = $('#result');
+      if (!el) return;
+      el.className = `result ${kind}`;
+      el.textContent = message;
+    }
+
     async function api(url, opts={}) {
-      const res = await fetch(url, opts);
+      const csrf = getCsrfToken();
+      const headers = new Headers(opts.headers || {});
+      const method = (opts.method || 'GET').toUpperCase();
+      if (csrf && method !== 'GET') {
+        headers.set('X-CSRF-Token', csrf);
+      }
+      const res = await fetch(url, { ...opts, headers });
       if (!res.ok) {
         const text = await res.text().catch(()=>'');
         throw new Error(text || (res.status + ' ' + res.statusText));
@@ -109,20 +163,37 @@
 
     function renderHostSelect() {
       const sel = $('#hostSelect');
-      sel.innerHTML = '';
+      const delSel = $('#delHostSelect');
+      if (sel) sel.innerHTML = '';
+      if (delSel) delSel.innerHTML = '';
       if (!hosts.length) {
         $('#hostsStatus').textContent = 'No saved hosts yet.';
-        const opt = document.createElement('option');
-        opt.value = ''; opt.textContent = '— none —';
-        sel.appendChild(opt);
+        if (sel) {
+          const opt = document.createElement('option');
+          opt.value = ''; opt.textContent = '— none —';
+          sel.appendChild(opt);
+        }
+        if (delSel) {
+          const opt = document.createElement('option');
+          opt.value = ''; opt.textContent = '— none —';
+          delSel.appendChild(opt);
+        }
         return;
       }
       $('#hostsStatus').textContent = `${hosts.length} saved host(s).`;
       for (const h of hosts) {
-        const opt = document.createElement('option');
-        opt.value = h.name;
-        opt.textContent = `${h.name} (${h.mac} → ${h.ip}:${h.port ?? 9})`;
-        sel.appendChild(opt);
+        if (sel) {
+          const opt = document.createElement('option');
+          opt.value = h.name;
+          opt.textContent = `${h.name} (${h.mac} → ${h.ip}:${h.port ?? 9})`;
+          sel.appendChild(opt);
+        }
+        if (delSel) {
+          const opt = document.createElement('option');
+          opt.value = h.name;
+          opt.textContent = `${h.name} (${h.mac} → ${h.ip}:${h.port ?? 9})`;
+          delSel.appendChild(opt);
+        }
       }
     }
 
@@ -141,48 +212,85 @@
       return hosts.find(h => h.name === name);
     }
 
+    function hydrateCsrfFields() {
+      const token = getCsrfToken();
+      document.querySelectorAll('input[name=\"csrf_token\"]').forEach(el => {
+        el.value = token || '';
+      });
+    }
+
     // ---- Wire up forms ----
     document.addEventListener('DOMContentLoaded', () => {
+      hydrateCsrfFields();
       loadHosts();
 
+      const wakeForm = $('#wakeForm');
+      if (wakeForm) {
+        wakeForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const data = new FormData(wakeForm);
+          attachCsrf(data);
+          try {
+            const res = await api('/wake', { method: 'POST', body: data });
+            showResult('success', res.message || 'Magic packet sent');
+          } catch (err) {
+            showResult('error', err.message);
+          }
+        });
+      }
+
       // 1) Wake selected (uses existing /wake by filling fields then submitting)
-      $('#wakeSavedForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = $('#hostSelect').value;
-        const h = findHostByName(name);
-        if (!h) return alert('Please choose a saved host.');
-        // Fill the original form fields
-        $('#mac_address').value = h.mac || '';
-        $('#ip_address').value = h.ip || '';
-        // Submit existing wake form (posts to /wake unchanged)
-        $('#wakeForm').requestSubmit();
-      });
+      const wakeSavedForm = $('#wakeSavedForm');
+      if (wakeSavedForm) {
+        wakeSavedForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const name = $('#hostSelect')?.value;
+          const h = findHostByName(name);
+          if (!h) return alert('Please choose a saved host.');
+          $('#mac_address').value = h.mac || '';
+          $('#ip_address').value = h.ip || '';
+          $('#port_number').value = h.port ?? 9;
+          $('#wakeForm').requestSubmit();
+        });
+      }
 
       // 2) Add host (POST /api/hosts as FormData)
-      $('#addHostForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const data = new FormData(e.target);
-        try {
-          await api('/api/hosts', { method: 'POST', body: data });
-          e.target.reset();
-          await loadHosts();
-        } catch (err) {
-          alert('Add failed: ' + err.message);
-        }
-      });
+      const addHostForm = $('#addHostForm');
+      if (addHostForm) {
+        addHostForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const data = new FormData(e.target);
+          attachCsrf(data);
+          try {
+            await api('/api/hosts', { method: 'POST', body: data });
+            e.target.reset();
+            hydrateCsrfFields();
+            await loadHosts();
+            showResult('success', 'Host added.');
+          } catch (err) {
+            showResult('error', 'Add failed: ' + err.message);
+          }
+        });
+      }
 
       // 3) Delete host (DELETE /api/hosts with FormData)
-      $('#delHostForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const data = new FormData(e.target);
-        try {
-          await api('/api/hosts', { method: 'DELETE', body: data });
-          e.target.reset();
-          await loadHosts();
-        } catch (err) {
-          alert('Delete failed: ' + err.message);
-        }
-      });
+      const delHostForm = $('#delHostForm');
+      if (delHostForm) {
+        delHostForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const data = new FormData(e.target);
+          attachCsrf(data);
+          try {
+            await api('/api/hosts', { method: 'DELETE', body: data });
+            e.target.reset();
+            hydrateCsrfFields();
+            await loadHosts();
+            showResult('success', 'Host deleted.');
+          } catch (err) {
+            showResult('error', 'Delete failed: ' + err.message);
+          }
+        });
+      }
     });
   </script>
 </body>
