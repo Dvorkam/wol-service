@@ -148,3 +148,10 @@ Helper scripts:
 - `scripts/run_tests.sh` — runs the test suite via uv.
 - `scripts/docker_build.sh` — builds a local Docker image (set `IMAGE_TAG` to override the tag).
 - `scripts/docker_compose_up.sh` — wrapper for `docker compose up --build` (compose mounts `./data` to persist hosts/users).
+
+## Security notes
+
+- Always set a strong `SECRET_KEY` in production. Tokens are signed with it.
+- Set `ADMIN_USERNAME` and `ADMIN_PASSWORD` for authenticated mode. If both are left blank, authentication and CSRF protections are disabled; only use that on a trusted LAN.
+- Persist `users.json` and `hosts.json` on disk (see Docker volume examples) so credentials/hosts survive restarts and you avoid surprise defaults.
+- Cookies are `httponly` and `samesite` by default; set `COOKIE_SECURE=true` (default) when serving over TLS.
