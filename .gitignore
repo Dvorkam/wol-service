@@ -61,6 +61,8 @@ config.json
 secrets.json
 .env.local
 .env.*.local
+hosts.json
+users.json
 
 # Logs
 *.log

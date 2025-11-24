@@ -134,3 +134,9 @@ Run the suite (using the existing `.venv`) with uv:
 ```bash
 UV_CACHE_DIR=.uv-cache uv run --no-sync pytest
 ```
+
+Helper scripts:
+
+- `scripts/run_tests.sh` — runs the test suite via uv.
+- `scripts/docker_build.sh` — builds a local Docker image (set `IMAGE_TAG` to override the tag).
+- `scripts/docker_compose_up.sh` — wrapper for `docker compose up --build`.
