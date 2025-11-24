@@ -6,6 +6,7 @@ FROM astral/uv:python3.12-bookworm-slim
 WORKDIR /app
 
 ENV UV_SYSTEM_PYTHON=1
+ENV CONTAINER=true
 
 # Copy the pyproject.toml and uv.lock files
 COPY pyproject.toml uv.lock README.md ./
