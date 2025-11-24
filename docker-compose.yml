@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  wol-service:
+    build: .
+    ports:
+      - "25644:25644"
+    environment:
+      - SECRET_KEY=your-secret-key-here
+      - ADMIN_USERNAME=test_admin
+      - ADMIN_PASSWORD=test_password
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
