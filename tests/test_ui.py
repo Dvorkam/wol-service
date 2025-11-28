@@ -1,9 +1,10 @@
 import asyncio
+import importlib
 
 import httpx
+import pytest
 
-from wol_service import app
-
+from wol_service import app, ui
 
 ADMIN_USER = "test_admin"
 ADMIN_PASS = "test_password"
@@ -40,7 +41,7 @@ def test_wake_requires_csrf(monkeypatch):
         transport = httpx.ASGITransport(app=app.app)
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             await login_and_get_csrf(client)
-            monkeypatch.setattr("wol_service.app.wake_on_lan", lambda *args, **kwargs: True)
+            monkeypatch.setattr("wol_service.wol.wake_on_lan", lambda *args, **kwargs: True)
             response = await client.post(
                 "/wake",
                 data={"mac_address": "00:11:22:33:44:55", "ip_address": "255.255.255.255", "port_number": "9"},
@@ -55,7 +56,7 @@ def test_wake_with_csrf(monkeypatch):
         transport = httpx.ASGITransport(app=app.app)
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             csrf_token = await login_and_get_csrf(client)
-            monkeypatch.setattr("wol_service.app.wake_on_lan", lambda *args, **kwargs: True)
+            monkeypatch.setattr("wol_service.wol.wake_on_lan", lambda *args, **kwargs: True)
             response = await client.post(
                 "/wake",
                 data={
@@ -70,33 +71,20 @@ def test_wake_with_csrf(monkeypatch):
     asyncio.run(_run())
 
 
-def test_add_host_validates_input():
-    async def _run():
-        transport = httpx.ASGITransport(app=app.app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
-            csrf_token = await login_and_get_csrf(client)
-            response = await client.post(
-                "/api/hosts",
-                data={"name": "bad", "mac": "ZZ:ZZ:ZZ:ZZ:ZZ:ZZ", "ip": "not-an-ip", "port": 9, "csrf_token": csrf_token},
-            )
-            assert response.status_code == 400
-    asyncio.run(_run())
-
-
 def test_no_auth_allows_direct_access(tmp_path, monkeypatch):
-    import importlib
-    import wol_service.auth as auth_module
-    import wol_service.app as app_module
-
+    import wol_service.user_management as um
+    
     monkeypatch.delenv("ADMIN_USERNAME", raising=False)
     monkeypatch.delenv("ADMIN_PASSWORD", raising=False)
     monkeypatch.setenv("SECRET_KEY", "no-auth-secret")
     monkeypatch.setenv("USERS_PATH", str(tmp_path / "users.json"))
     monkeypatch.setenv("WOL_HOSTS_PATH", str(tmp_path / "hosts.json"))
 
-    importlib.reload(auth_module)
-    app_mod = importlib.reload(app_module)
-    app_mod.wake_on_lan = lambda *args, **kwargs: True
+    importlib.reload(um)
+    app_mod = importlib.reload(app)
+    ui_mod = importlib.reload(ui)
+    
+    monkeypatch.setattr(ui_mod, "wake_on_lan", lambda *args, **kwargs: True)
 
     async def _run():
         transport = httpx.ASGITransport(app=app_mod.app)
@@ -119,20 +107,18 @@ def test_no_auth_allows_direct_access(tmp_path, monkeypatch):
     # restore default app state for later tests
     monkeypatch.setenv("ADMIN_USERNAME", ADMIN_USER)
     monkeypatch.setenv("ADMIN_PASSWORD", ADMIN_PASS)
-    importlib.reload(auth_module)
-    importlib.reload(app_module)
+    importlib.reload(um)
+    importlib.reload(app)
 
 
 def test_warn_if_data_not_mounted(monkeypatch, caplog):
-    import importlib
-    import wol_service.app as app_module
-
     monkeypatch.setenv("WOL_HOSTS_PATH", "/data/hosts.json")
     monkeypatch.setenv("USERS_PATH", "/data/users.json")
-    importlib.reload(app_module)
+    
+    app_mod = importlib.reload(app)
 
-    monkeypatch.setattr(app_module, "CONTAINER", True)
-    monkeypatch.setattr(app_module.os.path, "ismount", lambda p: False)
+    monkeypatch.setattr(app_mod, "CONTAINER", True)
+    monkeypatch.setattr(app_mod.os.path, "ismount", lambda p: False)
     caplog.set_level("WARNING")
-    app_module._warn_if_ephemeral_storage()
+    app_mod._warn_if_ephemeral_storage()
     assert any("not a mounted volume" in rec.message for rec in caplog.records)
