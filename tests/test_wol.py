@@ -1,4 +1,3 @@
-import pytest
 from wol_service.wol import wake_on_lan, create_magic_packet
 
 def test_wake_on_lan_functionality():

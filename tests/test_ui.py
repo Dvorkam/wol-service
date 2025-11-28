@@ -2,7 +2,6 @@ import asyncio
 import importlib
 
 import httpx
-import pytest
 
 from wol_service import app, ui
 

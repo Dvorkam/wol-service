@@ -2,13 +2,10 @@ import os
 import secrets
 from datetime import datetime, timedelta, UTC
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import HTTPException, Request
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
-
-from wol_service.utils import atomic_write
-
 
 # Password hashing
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")

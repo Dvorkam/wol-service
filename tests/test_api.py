@@ -1,10 +1,8 @@
 import asyncio
-import importlib
 
 import httpx
-import pytest
 
-from wol_service import app, api
+from wol_service import app
 
 ADMIN_USER = "test_admin"
 ADMIN_PASS = "test_password"

@@ -4,11 +4,11 @@ from wol_service.validators import validate_mac_address, validate_ip_address, va
 def test_validate_mac_address_valid():
     """Test that valid MAC addresses are validated correctly"""
     valid_mac = "00:11:22:33:44:55"
-    assert validate_mac_address(valid_mac) == True
+    assert validate_mac_address(valid_mac)
     
     # Test without separators
     valid_mac_no_sep = "001122334455"
-    assert validate_mac_address(valid_mac_no_sep) == True
+    assert validate_mac_address(valid_mac_no_sep)
 
 @pytest.mark.parametrize("mac_address,validity", [
     ("00-11-22-33-44-55", True), # valid with dashes

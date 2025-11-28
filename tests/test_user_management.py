@@ -3,10 +3,9 @@ import json
 import importlib
 import os
 
-import pytest
 
 import wol_service.user_management as um
-from wol_service.auth import get_password_hash, verify_password
+from wol_service.auth import verify_password
 
 
 def test_load_users_bootstraps_admin(tmp_path, monkeypatch):
