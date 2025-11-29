@@ -1,157 +1,94 @@
 # Wakeup on LAN Service
-
 ## Project Overview
-
-This is a simple Wakeup on LAN (WoL) service built using FastAPI and Python. It provides an HTTP API to wake up network devices over the local area network.
-
+This is a simple Wakeup on LAN (WoL) service built using FastAPI. It provides an HTTP API and a web interface to wake up network devices over the local area network.
 ## Requirements
-
-- Docker
-- Python 3.9+
-- uvicorn[standard]
-- jinja2
-- argon2
-- pytest (for testing)
-- httpx (for testing)
-
-## Setup Instructions
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/your-repo/wol-service.git
-   cd wol-service
-   ```
-
-2. **Install dependencies using uv:**
-
-   First, ensure you have `uv` installed. If not, you can install it via pip:
-
-   ```bash
-   pip install uv
-   ```
-
-   Then, run the following command to install all necessary Python dependencies:
-
-   ```bash
-   uv install -e .
-   ```
-
-3. **Build Docker container:**
-
-   ```bash
-   docker build -t wol-service .
-   ```
-
-## Default Admin Account
-
-The service can be configured with a default admin account using environment variables (recommended):
-
-- `ADMIN_USERNAME`: Username for the default admin account
-- `ADMIN_PASSWORD`: Password for the default admin account
-- `SECRET_KEY` **(required)**: Used to sign JWT cookies. The app refuses to start without it.
-- `USERS_PATH` (default: `users.json`): Location where hashed user records are stored. Admin credentials from the environment are written here on first boot.
-- `WOL_HOSTS_PATH` (default: `hosts.json`): Location for saved hosts.
-- `COOKIE_SECURE` (default: `true`): Set to `false` for HTTP-only local testing so cookies are sent without TLS.
-- `COOKIE_SAMESITE` (default: `lax`): Adjust only if your deployment requires it.
-
-The default admin account is created during application startup and the environment variables are automatically removed for security reasons. This is useful for initial setup in containerized environments.
-
-*Note: For security reasons, the ADMIN_USERNAME and ADMIN_PASSWORD environment variables are automatically removed from the environment after creating the default admin account.*
-*The application will fail fast if `SECRET_KEY` is missing so tokens cannot be forged.*
-
-If you choose to run **without** `ADMIN_USERNAME`/`ADMIN_PASSWORD`, authentication and CSRF protections are disabled and all endpoints become open. A warning is logged to remind you this mode is unsafe for shared networks.
-If you explicitly set both to empty strings (e.g., `ADMIN_USERNAME= ADMIN_PASSWORD=`) any persisted users are ignored and the app runs unauthenticated for that process only.
-
-### CSRF protection
-
-Login issues an `access_token` (HTTP-only) and a `csrf_token` (readable by the browser). All state-changing requests (`/wake`, `/api/hosts` POST/DELETE) must include the CSRF token via a hidden form field or `X-CSRF-Token` header; the UI pages do this automatically.
-When authentication is disabled, `/login` redirects to `/wake`, and the wake/host endpoints are open (but this is unsafe outside a trusted LAN).
-## Running the Application Locally
-
-1. **Start the FastAPI application locally (remember a SECRET_KEY and credentials are required):**
-
-   ```bash
-   SECRET_KEY=change-me \
-   ADMIN_USERNAME=admin \
-   ADMIN_PASSWORD=adminpass \
-   uv run uvicorn wol_service.app:app --reload --host 0.0.0.0 --port 25644
-   ```
-
-2. **Access the web interface:**
-
-   Open your web browser and navigate to `http://localhost:25644`.
-
-## Docker Setup
-
-1. **Run the Docker container:**
-
-   ```bash
-   mkdir -p data
-   docker run -d -p 25644:25644 --name wol-service-container \
-     -e SECRET_KEY=change-me \
-     -e ADMIN_USERNAME=admin \
-     -e ADMIN_PASSWORD=adminpass \
-     -e WOL_HOSTS_PATH=/data/hosts.json \
-     -e USERS_PATH=/data/users.json \
-     -v "$(pwd)/data:/data" \
-     wol-service
-   ```
-
-2. **Access the web interface:**
-
-   Open your web browser and navigate to `http://localhost:25644`.
-
-## GitHub Actions Configuration
-
-This project uses GitHub Actions for continuous integration and deployment:
-
-- **Unit Tests:** Automatically run tests using pytest.
-- **Versioning:** Manages version tags for releases.
-- **Release Handling:** Automates the release process.
-
-*Note: No additional GitHub Actions configurations are included in this initial setup.*
-
-## Contributing Guidelines
-
-1. Fork the repository and create your branch from `main`.
-2. Create a new branch for your changes:
-
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-3. Make your changes and commit them:
-
-   ```bash
-   git commit -m "Add some feature"
-   ```
-
-4. Push to the branch:
-
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-5. Open a pull request in GitHub.
-
-## Testing
-
-Run the suite (using the existing `.venv`) with uv:
-
+You can run this application using Python directly or via Docker.
+ * Option A: Python 3.12+ (managed via uv)
+ * Option B: Docker Engine
+ * Option C: Docker Compose
+## Configuration
+The application is configured via environment variables. These apply regardless of the running method chosen.
+### Environment Variables
+| Variable | Description | Default |
+|---|---|---|
+| SECRET_KEY | Required. Used to sign JWT cookies. The app will not start without this. | None |
+| ADMIN_USERNAME | Username for the initial admin account. | None |
+| ADMIN_PASSWORD | Password for the initial admin account. | None |
+| USERS_PATH | Path to store hashed user records. | users.json |
+| WOL_HOSTS_PATH | Path to store saved WoL hosts. | hosts.json |
+| COOKIE_SECURE | Set to false if running on HTTP (localhost/LAN) without TLS. | true |
+| COOKIE_SAMESITE | Cookie SameSite policy. | lax |
+### Authentication Modes
+ * Authenticated (Recommended): Set ADMIN_USERNAME and ADMIN_PASSWORD.
+   * Credentials are hashed and stored in USERS_PATH on the first boot.
+   * Environment variables for credentials are cleared from memory immediately after startup.
+   * CSRF protection is enabled.
+ * Unauthenticated (Insecure): Leave ADMIN_USERNAME and ADMIN_PASSWORD unset (or set to empty strings).
+   * Authentication and CSRF protections are disabled.
+   * All endpoints are open. Only use this on a strictly trusted LAN.
+## Usage Method 1: Python (Local)
+Use this method to run the application directly on the host machine.
+ * Install dependencies:
+   Ensure you have uv installed (pip install uv), then install project dependencies:
 ```bash
-UV_CACHE_DIR=.uv-cache uv run --no-sync pytest
+   uv install -e .
+dependencies:
 ```
 
-Helper scripts:
+ * Run the application:
+   Replace the values below as needed.
 
-- `scripts/run_tests.sh` — runs the test suite via uv.
-- `scripts/docker_build.sh` — builds a local Docker image (set `IMAGE_TAG` to override the tag).
-- `scripts/docker_compose_up.sh` — wrapper for `docker compose up --build` (compose mounts `./data` to persist hosts/users).
+```bash
+   SECRET_KEY=change-me-to-something-secure \
+ADMIN_USERNAME=admin \
+ADMIN_PASSWORD=adminpass \
+COOKIE_SECURE=false \
+uv run uvicorn wol_service.app:app --reload --host 0.0.0.0 --port 25644
+```
+ * Access: Open http://localhost:25644.
+Usage Method 2: Docker (Standalone)
+ * Build the image:
+```bash
+   docker build -t wol-service .
+```
 
-## Security notes
+ * Run the container:
+   This command mounts a local ./data directory to persist users and hosts.
+```bash
+mkdir -p data
 
-- Always set a strong `SECRET_KEY` in production. Tokens are signed with it.
-- Set `ADMIN_USERNAME` and `ADMIN_PASSWORD` for authenticated mode. If both are left blank, authentication and CSRF protections are disabled; only use that on a trusted LAN.
-- Persist `users.json` and `hosts.json` on disk (see Docker volume examples) so credentials/hosts survive restarts and you avoid surprise defaults.
-- Cookies are `httponly` and `samesite` by default; set `COOKIE_SECURE=true` (default) when serving over TLS.
+docker run -d -p 25644:25644 --name wol-service-container \
+  -e SECRET_KEY=change-me-to-something-secure \
+  -e ADMIN_USERNAME=admin \
+  -e ADMIN_PASSWORD=adminpass \
+  -e COOKIE_SECURE=false \
+  -e WOL_HOSTS_PATH=/data/hosts.json \
+  -e USERS_PATH=/data/users.json \
+  -v "$(pwd)/data:/data" \
+  wol-service
+```
+ * Access: Open http://localhost:25644.
+Usage Method 3: Docker Compose
+If you prefer using Compose, you can use the provided helper script or run standard compose commands.
+ * Start the service:
+   # Using the helper script (builds and mounts ./data automatically)
+```bash
+./scripts/docker_compose_up.sh
+```
+
+# OR using standard docker compose (ensure your compose file maps volumes correctly)
+```bash
+docker compose up --build -d
+```
+
+Development & Testing
+This project uses pytest. To run the test suite:
+```bash
+uv run --no-sync pytest
+```
+> Note: A helper script is also available at scripts/run_tests.sh.
+> 
+Security Notes
+ * Production Deployment: Always use a strong, random SECRET_KEY.
+ * Persistence: Ensure users.json and hosts.json are stored on a persistent volume (as shown in the Docker example), or data will be lost on container restart.
+ * HTTPS: If running behind a reverse proxy with HTTPS, remove COOKIE_SECURE=false (let it default to true).
