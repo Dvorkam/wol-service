@@ -9,6 +9,7 @@ from wol_service.api import router as api_router
 from wol_service.ui import router as ui_router
 from wol_service.utils import ensure_parent_dir
 from wol_service.user_management import load_users
+from wol_service.env import HOSTS_PATH, CONTAINER
 
 
 from contextlib import asynccontextmanager
@@ -36,22 +37,20 @@ app.include_router(api_router)
 app.include_router(ui_router)
 
 # In-memory storage for users
-USERS = load_users()
-AUTH_ENABLED = bool(USERS)
-HOSTS_PATH = os.getenv("WOL_HOSTS_PATH", "hosts.json")
-CONTAINER = os.getenv("CONTAINER", "false").lower() in ("1", "true", "yes", "on")
+
 
 
 def _warn_if_ephemeral_storage():
     if not CONTAINER:
         return
     if not os.path.ismount("/data"):
-        logger.warning("/data is not a mounted volume; users/hosts may be lost when the container stops.")
+        logger.warning(
+            "/data is not a mounted volume; users/hosts may be lost when the container stops."
+        )
     else:
-        logger.info("\t/data is a mounted volume; users/hosts will persist across restarts.")
-
-
-
+        logger.info(
+            "\t/data is a mounted volume; users/hosts will persist across restarts."
+        )
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 from wol_service.wol import wake_on_lan, create_magic_packet
 
+
 def test_wake_on_lan_functionality():
     """Test that wake_on_lan function can be called without errors"""
     # This test mainly ensures the function can be called
@@ -7,7 +8,8 @@ def test_wake_on_lan_functionality():
     # Just verify the function exists and can be called
     # We don't actually send packets in tests
     assert callable(wake_on_lan)
-    
+
+
 def test_create_magic_packet():
     """Test that create_magic_packet generates correct magic packet"""
     mac_address = "00:11:22:33:44:55"

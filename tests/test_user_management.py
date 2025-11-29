@@ -15,7 +15,12 @@ def test_load_users_bootstraps_admin(tmp_path, monkeypatch):
     importlib.reload(um)
     users = um.load_users()
     assert "bootstrap_admin" in users
-    assert verify_password("bootstrap_password", users["bootstrap_admin"]["hashed_password"]) is True
+    assert (
+        verify_password(
+            "bootstrap_password", users["bootstrap_admin"]["hashed_password"]
+        )
+        is True
+    )
     # Ensure env cleared for security
     assert os.environ.get("ADMIN_USERNAME") is None
     assert os.environ.get("ADMIN_PASSWORD") is None
@@ -36,7 +41,9 @@ def test_missing_credentials_raise(monkeypatch, tmp_path):
 def test_empty_env_disables_even_with_persisted_users(monkeypatch, tmp_path):
     # create persisted users
     users_path = tmp_path / "users.json"
-    users_path.write_text('{"admin":{"username":"admin","hashed_password":"hash"}}', encoding="utf-8")
+    users_path.write_text(
+        '{"admin":{"username":"admin","hashed_password":"hash"}}', encoding="utf-8"
+    )
     monkeypatch.setenv("USERS_PATH", str(users_path))
     monkeypatch.setenv("ADMIN_USERNAME", "")
     monkeypatch.setenv("ADMIN_PASSWORD", "")
@@ -49,7 +56,12 @@ def test_secret_mismatch_warns(monkeypatch, tmp_path, capsys):
     users_path = tmp_path / "users.json"
     original_fp = hashlib.sha256(b"oldsecret").hexdigest()
     users_path.write_text(
-        json.dumps({"users": {"user": {"username": "user", "hashed_password": "hash"}}, "_meta": {"secret_fingerprint": original_fp}}),
+        json.dumps(
+            {
+                "users": {"user": {"username": "user", "hashed_password": "hash"}},
+                "_meta": {"secret_fingerprint": original_fp},
+            }
+        ),
         encoding="utf-8",
     )
     monkeypatch.setenv("USERS_PATH", str(users_path))

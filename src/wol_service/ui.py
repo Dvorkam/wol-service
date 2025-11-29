@@ -16,8 +16,19 @@ from wol_service.auth import (
     validate_csrf,
 )
 from wol_service.user_management import load_users
-from wol_service.validators import validate_ip_address, validate_mac_address, validate_port
+from wol_service.validators import (
+    validate_ip_address,
+    validate_mac_address,
+    validate_port,
+)
 from wol_service.wol import wake_on_lan
+from wol_service.env import (
+    COOKIE_SECURE,
+    COOKIE_SAMESITE,
+    CONTAINER,
+)
+
+
 
 router = APIRouter()
 templates = Jinja2Templates(directory="src/wol_service/templates")
@@ -26,9 +37,7 @@ logger = logging.getLogger("wol_service")
 # In-memory storage for users
 USERS = load_users()
 AUTH_ENABLED = bool(USERS)
-COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").lower() in ("1", "true", "yes", "on")
-COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax")
-CONTAINER = os.getenv("CONTAINER", "false").lower() in ("1", "true", "yes", "on")
+
 
 
 def _enforce_csrf(request: Request, csrf_token: str | None) -> None:
@@ -55,9 +64,13 @@ def _warn_if_ephemeral_storage():
     if not CONTAINER:
         return
     if not os.path.ismount("/data"):
-        logger.warning("/data is not a mounted volume; users/hosts may be lost when the container stops.")
+        logger.warning(
+            "/data is not a mounted volume; users/hosts may be lost when the container stops."
+        )
     else:
-        logger.info("\t/data is a mounted volume; users/hosts will persist across restarts.")
+        logger.info(
+            "\t/data is a mounted volume; users/hosts will persist across restarts."
+        )
 
 
 @router.get("/", response_class=HTMLResponse)

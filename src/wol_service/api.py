@@ -5,12 +5,15 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from wol_service.auth import require_user_from_cookie, validate_csrf
 from wol_service.models import Host
 from wol_service.storage import load_hosts, save_hosts
-from wol_service.validators import validate_ip_address, validate_mac_address, validate_port
+from wol_service.validators import (
+    validate_ip_address,
+    validate_mac_address,
+    validate_port,
+)
+from wol_service.env import HOSTS_PATH
+
 
 router = APIRouter()
-
-# In-memory storage for users
-HOSTS_PATH = "hosts.json"
 
 
 def get_hosts() -> List[Host]:
@@ -50,7 +53,9 @@ async def add_host(
         raise HTTPException(400, "Host with this name already exists")
     if any(h["mac"].lower() == mac.strip().lower() for h in hosts):
         raise HTTPException(400, "Host with this MAC already exists")
-    hosts.append({"name": name.strip(), "mac": mac.strip(), "ip": ip.strip(), "port": int(port)})
+    hosts.append(
+        {"name": name.strip(), "mac": mac.strip(), "ip": ip.strip(), "port": int(port)}
+    )
     set_hosts(hosts)
     return {"ok": True}
 
