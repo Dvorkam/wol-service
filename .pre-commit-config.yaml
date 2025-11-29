@@ -22,8 +22,8 @@ repos:
     hooks:
     -   id: pytest
         name: pytest
-        entry: uv run pytest tests
-        language: python
-        files: ^tests/
-        require_serial: true
-        additional_dependencies: ["pytest", "httpx", "pytest-cov", "anyio"]
+        entry: ./.venv/bin/pytest tests
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
