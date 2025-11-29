@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "DvorkaM", email = "DvorkaM@gmail.com" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.120.4",
     "jinja2>=3.1.6",
@@ -27,8 +27,14 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "black>=25.11.0",
+    "mypy>=1.19.0",
+    "ruff>=0.5.5",
+    "types-passlib>=1.7.7.20250602",
+    "types-python-jose>=3.5.0.20250531",
+]
+test = [
     "httpx>=0.28.1",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
-    "ruff>=0.5.5",
 ]
