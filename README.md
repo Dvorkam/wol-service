@@ -87,7 +87,7 @@ This project uses pytest. To run the test suite:
 uv run --no-sync pytest
 ```
 > Note: A helper script is also available at scripts/run_tests.sh.
-> 
+>
 Security Notes
  * Production Deployment: Always use a strong, random SECRET_KEY.
  * Persistence: Ensure users.json and hosts.json are stored on a persistent volume (as shown in the Docker example), or data will be lost on container restart.

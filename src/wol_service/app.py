@@ -8,7 +8,6 @@ from fastapi.staticfiles import StaticFiles
 from wol_service.api import router as api_router
 from wol_service.ui import router as ui_router
 from wol_service.utils import ensure_parent_dir
-from wol_service.user_management import load_users
 from wol_service.env import HOSTS_PATH, CONTAINER
 
 
@@ -37,7 +36,6 @@ app.include_router(api_router)
 app.include_router(ui_router)
 
 # In-memory storage for users
-
 
 
 def _warn_if_ephemeral_storage():

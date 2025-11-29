@@ -9,7 +9,6 @@ from wol_service.utils import atomic_write
 from wol_service.models import User
 
 
-
 USERS_PATH = Path(os.getenv("USERS_PATH", "users.json"))
 SECRET_KEY = os.getenv("SECRET_KEY")
 SECRET_FINGERPRINT = (
@@ -75,7 +74,7 @@ def load_users() -> Dict[str, User]:
         os.getenv("ADMIN_USERNAME") == "" and os.getenv("ADMIN_PASSWORD") == ""
     )
     if disable_flag:
-        users:dict[str, User]= {}
+        users: dict[str, User] = {}
     else:
         users, meta = _load_users_from_file(USERS_PATH)
         if SECRET_FINGERPRINT:

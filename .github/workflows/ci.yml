@@ -9,11 +9,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+
     - name: Set up Python and uv
       uses: actions/setup-python@v4
       with:
@@ -32,7 +32,7 @@ jobs:
 
     - name: Install dependencies
       run: uv pip install --system --no-cache-dir -e '.[dev]'
-        
+
     - name: Lint with ruff
       run: uv run ruff check .
 

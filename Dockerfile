@@ -21,7 +21,7 @@ COPY src/ ./src/
 
 
 
-RUN uv pip install --system . 
+RUN uv pip install --system .
 # Copy tests
 
 # Copy other files

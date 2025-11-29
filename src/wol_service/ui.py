@@ -29,7 +29,6 @@ from wol_service.env import (
 )
 
 
-
 router = APIRouter()
 templates = Jinja2Templates(directory="src/wol_service/templates")
 logger = logging.getLogger("wol_service")
@@ -37,7 +36,6 @@ logger = logging.getLogger("wol_service")
 # In-memory storage for users
 USERS = load_users()
 AUTH_ENABLED = bool(USERS)
-
 
 
 def _enforce_csrf(request: Request, csrf_token: str | None) -> None:
