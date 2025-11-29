@@ -21,15 +21,15 @@ COPY src/ ./src/
 
 
 
-RUN uv pip install --system .
+RUN uv pip install --system . 
 # Copy tests
-COPY tests/ ./tests/
 
 # Copy other files
-COPY README.md ./
+
 
 # Expose port
 EXPOSE 25644
 
 # Run the application
+# uvicorn wol_service.app:app --host 0.0.0.0 --port 25644
 CMD ["uvicorn", "wol_service.app:app", "--host", "0.0.0.0", "--port", "25644"]
