@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # JOB 1: Determine which Python versions to test
+  matrix-prep:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.set-matrix.outputs.versions }}
+    steps:
+      - id: set-matrix
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "versions=['3.12']" >> "$GITHUB_OUTPUT"
+          else
+            echo "versions=['3.10', '3.11', '3.12', '3.13', '3.14']" >> "$GITHUB_OUTPUT"
+          fi
+
+  # JOB 2: Static Analysis & Sanity Check
+  quality:
+    name: Quality & Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - run: uv python install 3.12
+
+      - run: uv sync --group dev --group test
+
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy .
+
+      - name: Start Service and Verify Health
+        env:
+          SECRET_KEY: "ci-secret-key"
+          ADMIN_USERNAME: "admin"
+          ADMIN_PASSWORD: "adminpass"
+        run: |
+          uv run uvicorn wol_service.app:app --host 0.0.0.0 --port 25644 &
+          SERVER_PID=$!
+          
+          # Wait loop to ensure server is ready before request
+          for i in {1..10}; do
+            if curl -s http://127.0.0.1:25644/docs > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          
+          # Fail if endpoint returns error code; kill background process on failure
+          curl -f http://127.0.0.1:25644/login || (kill $SERVER_PID && exit 1)
+          
+          kill $SERVER_PID
+
+  # JOB 3: Tests (Dynamic Matrix)
+  tests:
+    name: Test (Python ${{ matrix.python-version }})
+    needs: [quality, matrix-prep]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # JSON parse the array output from the prep job
+        python-version: ${{ fromJson(needs.matrix-prep.outputs.versions) }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - run: uv python install ${{ matrix.python-version }}
+      - run: uv sync --group test
+      - run: uv run pytest --cov=src/wol_service tests/
+
+      # Catch failure to print warning, prevents build fail on <70%
+      - run: uv run coverage report --fail-under=70 || echo "::warning::Coverage is below 70%"

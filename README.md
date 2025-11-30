@@ -1,101 +1,94 @@
 # Wakeup on LAN Service
-
 ## Project Overview
-
-This is a simple Wakeup on LAN (WoL) service built using FastAPI and Python. It provides an HTTP API to wake up network devices over the local area network.
-
+This is a simple Wakeup on LAN (WoL) service built using FastAPI. It provides an HTTP API and a web interface to wake up network devices over the local area network.
 ## Requirements
+You can run this application using Python directly or via Docker.
+ * Option A: Python 3.12+ (managed via uv)
+ * Option B: Docker Engine
+ * Option C: Docker Compose
+## Configuration
+The application is configured via environment variables. These apply regardless of the running method chosen.
+### Environment Variables
+| Variable | Description | Default |
+|---|---|---|
+| SECRET_KEY | Required. Used to sign JWT cookies. The app will not start without this. | None |
+| ADMIN_USERNAME | Username for the initial admin account. | None |
+| ADMIN_PASSWORD | Password for the initial admin account. | None |
+| USERS_PATH | Path to store hashed user records. | users.json |
+| WOL_HOSTS_PATH | Path to store saved WoL hosts. | hosts.json |
+| COOKIE_SECURE | Set to false if running on HTTP (localhost/LAN) without TLS. | true |
+| COOKIE_SAMESITE | Cookie SameSite policy. | lax |
+### Authentication Modes
+ * Authenticated (Recommended): Set ADMIN_USERNAME and ADMIN_PASSWORD.
+   * Credentials are hashed and stored in USERS_PATH on the first boot.
+   * Environment variables for credentials are cleared from memory immediately after startup.
+   * CSRF protection is enabled.
+ * Unauthenticated (Insecure): Leave ADMIN_USERNAME and ADMIN_PASSWORD unset (or set to empty strings).
+   * Authentication and CSRF protections are disabled.
+   * All endpoints are open. Only use this on a strictly trusted LAN.
+## Usage Method 1: Python (Local)
+Use this method to run the application directly on the host machine.
+ * Install dependencies:
+   Ensure you have uv installed (pip install uv), then install project dependencies:
+```bash
+   uv install -e .
+dependencies:
+```
 
-- Docker
-- Python 3.9+
-- uvicorn[standard]
-- jinja2
-- argon2
-- pytest (for testing)
-- httpx (for testing)
+ * Run the application:
+   Replace the values below as needed.
 
-## Setup Instructions
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/your-repo/wol-service.git
-   cd wol-service
-   ```
-
-2. **Install dependencies using uv:**
-
-   First, ensure you have `uv` installed. If not, you can install it via pip:
-
-   ```bash
-   pip install uv
-   ```
-
-   Then, run the following command to install all necessary Python dependencies:
-
-   ```bash
-   uv install -r requirements.txt
-   ```
-
-3. **Build Docker container:**
-
-   ```bash
+```bash
+   SECRET_KEY=change-me-to-something-secure \
+ADMIN_USERNAME=admin \
+ADMIN_PASSWORD=adminpass \
+COOKIE_SECURE=false \
+uv run uvicorn wol_service.app:app --reload --host 0.0.0.0 --port 25644
+```
+ * Access: Open http://localhost:25644.
+Usage Method 2: Docker (Standalone)
+ * Build the image:
+```bash
    docker build -t wol-service .
-   ```
+```
 
-## Running the Application Locally
+ * Run the container:
+   This command mounts a local ./data directory to persist users and hosts.
+```bash
+mkdir -p data
 
-1. **Start the FastAPI application locally:**
+docker run -d -p 25644:25644 --name wol-service-container \
+  -e SECRET_KEY=change-me-to-something-secure \
+  -e ADMIN_USERNAME=admin \
+  -e ADMIN_PASSWORD=adminpass \
+  -e COOKIE_SECURE=false \
+  -e WOL_HOSTS_PATH=/data/hosts.json \
+  -e USERS_PATH=/data/users.json \
+  -v "$(pwd)/data:/data" \
+  wol-service
+```
+ * Access: Open http://localhost:25644.
+Usage Method 3: Docker Compose
+If you prefer using Compose, you can use the provided helper script or run standard compose commands.
+ * Start the service:
+   # Using the helper script (builds and mounts ./data automatically)
+```bash
+./scripts/docker_compose_up.sh
+```
 
-   ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 25644
-   ```
+# OR using standard docker compose (ensure your compose file maps volumes correctly)
+```bash
+docker compose up --build -d
+```
 
-2. **Access the web interface:**
-
-   Open your web browser and navigate to `http://localhost:25644`.
-
-## Docker Setup
-
-1. **Run the Docker container:**
-
-   ```bash
-   docker run -d -p 25644:25644 --name wol-service-container wol-service
-   ```
-
-2. **Access the web interface:**
-
-   Open your web browser and navigate to `http://localhost:25644`.
-
-## GitHub Actions Configuration
-
-This project uses GitHub Actions for continuous integration and deployment:
-
-- **Unit Tests:** Automatically run tests using pytest.
-- **Versioning:** Manages version tags for releases.
-- **Release Handling:** Automates the release process.
-
-*Note: No additional GitHub Actions configurations are included in this initial setup.*
-
-## Contributing Guidelines
-
-1. Fork the repository and create your branch from `main`.
-2. Create a new branch for your changes:
-
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-3. Make your changes and commit them:
-
-   ```bash
-   git commit -m "Add some feature"
-   ```
-
-4. Push to the branch:
-
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-5. Open a pull request in GitHub.
+Development & Testing
+This project uses pytest. To run the test suite:
+```bash
+uv run --no-sync pytest
+```
+> Note: A helper script is also available at scripts/run_tests.sh.
+>
+Security Notes
+ * Production Deployment: Always use a strong, random SECRET_KEY.
+ * Persistence: Ensure users.json and hosts.json are stored on a persistent volume (as shown in the Docker example), or data will be lost on container restart.
+ * HTTPS: If running behind a reverse proxy with HTTPS, remove COOKIE_SECURE=false (let it default to true).
