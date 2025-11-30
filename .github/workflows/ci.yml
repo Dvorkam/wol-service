@@ -31,7 +31,7 @@ jobs:
           ${{ runner.os }}-uv-
 
     - name: Install dependencies
-      run: uv pip install --system --no-cache-dir -e '.[dev,test]'
+      run: uv pip install --system --no-cache-dir --group test --group dev -e '.'
 
     - name: Lint with ruff
       run: uv run ruff check .
