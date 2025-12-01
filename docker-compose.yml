@@ -4,8 +4,10 @@ services:
   wol-service:
     build: .
     ports:
-      - "25644:25644"
+      - "${PORT:-25644}:${PORT:-25644}"
     environment:
+      - HOST=${HOST:-0.0.0.0}
+      - PORT=${PORT:-25644}
       - SECRET_KEY=your-secret-key-here
       - ADMIN_USERNAME=test_admin
       - ADMIN_PASSWORD=test_password

@@ -1,35 +1,29 @@
 # Use Python 3.12 slim image
 FROM astral/uv:python3.12-bookworm-slim
 
-
-# Set working directory
 WORKDIR /app
 
+# 1. Arguments for flexibility
+# INSTALL_TARGET: Can be "." (local) or "wol-service" (PyPI) or "wol-service==0.1.0"
+ARG INSTALL_TARGET="wol-service"
+
 ENV UV_SYSTEM_PYTHON=1
-ENV CONTAINER=true
+ENV HOST=0.0.0.0
+ENV PORT=25644
 
-# Copy the pyproject.toml and uv.lock files
+# 2. Copy source code
+# We copy this even if we install from PyPI.
+# It's cleaner than complex multi-stage logic for a small app.
 COPY pyproject.toml uv.lock README.md ./
-
-# Copy source code
 COPY src/ ./src/
 
-# Install dependencies
-# Install locked runtime deps to system
-# RUN uv export --frozen --no-dev > /tmp/requirements.txt \
-# && uv pip install --system -r /tmp/requirements.txt
+# 3. The Hybrid Install
+# If INSTALL_TARGET is "wol-service", it downloads from PyPI.
+# If INSTALL_TARGET is ".", it installs the files we just copied.
+RUN uv pip install --system ${INSTALL_TARGET}
 
-
-
-RUN uv pip install --system .
-# Copy tests
-
-# Copy other files
-
-
-# Expose port
+# 4. Runtime
 EXPOSE 25644
 
-# Run the application
-# uvicorn wol_service.app:app --host 0.0.0.0 --port 25644
-CMD ["uvicorn", "wol_service.app:app", "--host", "0.0.0.0", "--port", "25644"]
+# Use exec form to ensure signals (SIGTERM) reach python
+CMD ["sh", "-c", "exec uvicorn wol_service.app:app --host $HOST --port $PORT"]
