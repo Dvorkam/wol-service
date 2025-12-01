@@ -1,4 +1,3 @@
-import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -6,21 +5,24 @@ from fastapi import HTTPException, Request
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
+from wol_service.env import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    SECRET_KEY,
+    ALGORITHM,
+    TOKEN_AUDIENCE,
+    TOKEN_ISSUER,
+)
+
 
 # Password hashing
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 # JWT settings
-SECRET_KEY = str(os.getenv("SECRET_KEY"))
 if not SECRET_KEY:
     SECRET_KEY = str(secrets.token_urlsafe(32))
     print(
         "Warning: SECRET_KEY was not set; generated a random key for this process. Tokens will not survive restarts."
     )
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-TOKEN_ISSUER = os.getenv("TOKEN_ISSUER", "wol-service")
-TOKEN_AUDIENCE = os.getenv("TOKEN_AUDIENCE", "wol-service-users")
 
 
 def verify_password(plain_password, hashed_password):
