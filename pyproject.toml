@@ -1,6 +1,7 @@
 [project]
 name = "wol-service"
-version = "0.2.0"
+version = "0.1.0rc1"
+license = "MIT"
 description = "Add your description here"
 readme = "README.md"
 authors = [
