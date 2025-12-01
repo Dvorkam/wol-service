@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from wol_service.api import router as api_router
 from wol_service.ui import router as ui_router
 from wol_service.utils import ensure_parent_dir
-from wol_service.env import HOSTS_PATH, CONTAINER
+from wol_service.env import HOSTS_PATH, CONTAINER, LOG_LEVEL
 
 
 from contextlib import asynccontextmanager
@@ -24,7 +24,6 @@ async def lifespan(app: FastAPI):
 
 # Initialize FastAPI app
 app = FastAPI(title="Wake on LAN Service", lifespan=lifespan)
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=LOG_LEVEL)
 logger = logging.getLogger("wol_service")
 

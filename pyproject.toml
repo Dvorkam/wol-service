@@ -1,6 +1,7 @@
 [project]
 name = "wol-service"
-version = "0.1.0"
+version = "0.1.0rc1"
+license = "MIT"
 description = "Add your description here"
 readme = "README.md"
 authors = [
@@ -27,10 +28,9 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "black>=25.11.0",
     "mypy>=1.19.0",
     "pre-commit>=4.5.0",
-    "ruff>=0.5.5",
+    "ruff>=0.14.7",
     "types-passlib>=1.7.7.20250602",
     "types-python-jose>=3.5.0.20250531",
 ]
@@ -39,8 +39,6 @@ test = [
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
 ]
-[tool.black]
-line-length = 88
 
 [tool.ruff]
 line-length = 88

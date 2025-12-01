@@ -1,29 +1,34 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  # 1. Standard hooks (Keep these for non-Python files)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-added-large-files
--   repo: https://github.com/psf/black
-    rev: 24.4.2
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  # 2. Local hooks using `uv` (Fast & Consistent)
+  - repo: local
     hooks:
-    -   id: black
--   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.5
-    hooks:
-    -   id: ruff
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.0
-    hooks:
-    -   id: mypy
--   repo: local
-    hooks:
-    -   id: pytest
-        name: pytest
-        entry: ./.venv/bin/pytest tests
+      # Ruff: Replace Black (Formatting)
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
         language: system
         types: [python]
-        pass_filenames: false
-        always_run: true
+
+      # Ruff: Linting (Fixes imports, variables, etc.)
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+
+      # Mypy: Static Type Checking
+      - id: mypy
+        name: mypy
+        entry: uv run mypy .
+        language: system
+        types: [python]
+        pass_filenames: false # Mypy needs to see the whole project context

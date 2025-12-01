@@ -3,7 +3,7 @@
 This is a simple Wakeup on LAN (WoL) service built using FastAPI. It provides an HTTP API and a web interface to wake up network devices over the local area network.
 ## Requirements
 You can run this application using Python directly or via Docker.
- * Option A: Python 3.12+ (managed via uv)
+ * Option A: Python 3.10+ (managed via uv)
  * Option B: Docker Engine
  * Option C: Docker Compose
 ## Configuration
@@ -12,12 +12,16 @@ The application is configured via environment variables. These apply regardless 
 | Variable | Description | Default |
 |---|---|---|
 | SECRET_KEY | Required. Used to sign JWT cookies. The app will not start without this. | None |
-| ADMIN_USERNAME | Username for the initial admin account. | None |
-| ADMIN_PASSWORD | Password for the initial admin account. | None |
+| ADMIN_USERNAME | Username for the initial admin account. If empty, authentication is disabled. | None |
+| ADMIN_PASSWORD | Password for the initial admin account. If empty, authentication is disabled. | None |
 | USERS_PATH | Path to store hashed user records. | users.json |
 | WOL_HOSTS_PATH | Path to store saved WoL hosts. | hosts.json |
-| COOKIE_SECURE | Set to false if running on HTTP (localhost/LAN) without TLS. | true |
-| COOKIE_SAMESITE | Cookie SameSite policy. | lax |
+| COOKIE_SECURE | Set to `true` if running on HTTPS. If `false`, cookies are sent over HTTP. | `false` |
+| COOKIE_SAMESITE | Cookie SameSite policy. Can be `lax`, `strict`, or `none`. | `lax` |
+| ACCESS_TOKEN_EXPIRE_MINUTES | How long a login session (JWT token) is valid in minutes. | `30` |
+| LOG_LEVEL | Logging level for the application. | `INFO` |
+| TOKEN_ISSUER | JWT token issuer string. | `wol-service` |
+| TOKEN_AUDIENCE | JWT token audience string. | `wol-service-users` |
 ### Authentication Modes
  * Authenticated (Recommended): Set ADMIN_USERNAME and ADMIN_PASSWORD.
    * Credentials are hashed and stored in USERS_PATH on the first boot.
