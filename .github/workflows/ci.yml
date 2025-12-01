@@ -53,7 +53,7 @@ jobs:
         run: |
           uv run uvicorn wol_service.app:app --host 0.0.0.0 --port 25644 &
           SERVER_PID=$!
-          
+
           # Wait loop to ensure server is ready before request
           for i in {1..10}; do
             if curl -s http://127.0.0.1:25644/docs > /dev/null; then
@@ -61,10 +61,10 @@ jobs:
             fi
             sleep 1
           done
-          
+
           # Fail if endpoint returns error code; kill background process on failure
           curl -f http://127.0.0.1:25644/login || (kill $SERVER_PID && exit 1)
-          
+
           kill $SERVER_PID
 
   # JOB 3: Tests (Dynamic Matrix)
