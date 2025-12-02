@@ -2,7 +2,7 @@
 name = "wol-service"
 version = "0.1.0rc2"
 license = "MIT"
-description = "Add your description here"
+description = "This is a simple Wakeup on LAN (WoL) service built using FastAPI. It provides an HTTP API and a web interface to wake up network devices over the local area network."
 readme = "README.md"
 authors = [
     { name = "DvorkaM", email = "DvorkaM@gmail.com" }
@@ -18,7 +18,9 @@ dependencies = [
     "argon2-cffi>=25.1.0",
     "python-jose>=3.5.0",
 ]
-
+[project.urls]
+Homepage = "https://github.com/Dvorkam/wol-service"
+Releases = "https://github.com/Dvorkam/wol-service/releases"
 [project.scripts]
 wol-service = "wol_service.app:app"
 
