@@ -4,8 +4,8 @@ This is a simple Wakeup on LAN (WoL) service built using FastAPI. It provides an
 ## Requirements
 You can run this application using Python directly or via Docker.
  * Option A: Python 3.10+ (managed via uv)
- * Option B: Docker Engine
- * Option C: Docker Compose
+ * Option B: Docker Engine (Available at [github repo](https://github.com/Dvorkam/wol-service/releases))
+ * Option C: Docker Compose (Available at [github repo](https://github.com/Dvorkam/wol-service/releases))
 ## Configuration
 The application is configured via environment variables. These apply regardless of the running method chosen.
 ### Environment Variables
