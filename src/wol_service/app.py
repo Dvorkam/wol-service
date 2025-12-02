@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from wol_service.api import router as api_router
 from wol_service.ui import router as ui_router
-from wol_service.utils import ensure_parent_dir
+from wol_service.utils import ensure_parent_dir, get_resource_path
 from wol_service.env import HOSTS_PATH, CONTAINER, LOG_LEVEL
 
 
@@ -28,7 +28,8 @@ logging.basicConfig(level=LOG_LEVEL)
 logger = logging.getLogger("wol_service")
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="src/wol_service/static"), name="static")
+static_path = get_resource_path("wol_service", "static")
+app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 # Include routers
 app.include_router(api_router)

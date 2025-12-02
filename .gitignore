@@ -74,3 +74,6 @@ data/
 .dockerignore
 *.docker
 .coverage
+
+# Environment variables
+.env

@@ -2,6 +2,19 @@ import json
 import os
 import tempfile
 from pathlib import Path
+import importlib.util
+
+
+def get_resource_path(package_name: str, resource_name: str) -> Path:
+    """
+    Get the path to a resource directory within a package.
+    This works for both development (editable install) and packaged installations.
+    """
+    spec = importlib.util.find_spec(package_name)
+    if not spec or not spec.origin:
+        raise ImportError(f"Could not find the spec for package '{package_name}'")
+    package_dir = Path(spec.origin).parent
+    return package_dir / resource_name
 
 
 def ensure_parent_dir(path: str | Path) -> None:

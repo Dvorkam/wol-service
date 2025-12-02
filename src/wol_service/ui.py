@@ -21,6 +21,7 @@ from wol_service.validators import (
     validate_mac_address,
     validate_port,
 )
+from wol_service.utils import get_resource_path
 from wol_service.wol import wake_on_lan
 from wol_service.env import (
     COOKIE_SECURE,
@@ -30,7 +31,9 @@ from wol_service.env import (
 
 
 router = APIRouter()
-templates = Jinja2Templates(directory="src/wol_service/templates")
+
+templates_path = get_resource_path("wol_service", "templates")
+templates = Jinja2Templates(directory=templates_path)
 logger = logging.getLogger("wol_service")
 
 # In-memory storage for users
