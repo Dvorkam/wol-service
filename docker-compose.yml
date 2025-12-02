@@ -1,19 +1,82 @@
 version: '3.8'
 
 services:
-  wol-service:
-    build: .
+  # This service is for local development.
+  # It builds from your local source code and mounts it.
+  # Run with: docker-compose up -d --build wol-service-local
+  wol-service-local:
+    restart: always
+    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "${PORT:-25644}:${PORT:-25644}"
     environment:
       - HOST=${HOST:-0.0.0.0}
       - PORT=${PORT:-25644}
-      - SECRET_KEY=your-secret-key-here
-      - ADMIN_USERNAME=test_admin
-      - ADMIN_PASSWORD=test_password
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - WOL_HOSTS_PATH=/data/hosts.json
       - USERS_PATH=/data/users.json
     volumes:
       - ./src:/app/src
       - ./tests:/app/tests
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./uv.lock:/app/uv.lock
+      - ./data:/data
+
+  # This service simulates a production environment by installing from PyPI.
+  # It does not mount the source code.
+  # Run with: docker-compose up -d --build wol-service
+  wol-service:
+    restart: always
+    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile.pypi
+      args:
+        # Installs the latest version from PyPI by default.
+        # You can pin to a version, e.g., INSTALL_TARGET=wol-service==0.1.0
+        INSTALL_TARGET: wol-service
+    ports:
+      # If you run this alongside the dev service, you'll need to change the host port.
+      # For example, set PYPI_PORT=25645 in a .env file or on the command line.
+      - "${PYPI_PORT:-25644}:${PORT:-25644}"
+    environment:
+      - HOST=${HOST:-0.0.0.0}
+      - PORT=${PORT:-25644}
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - WOL_HOSTS_PATH=/data/hosts.json
+      - USERS_PATH=/data/users.json
+    volumes:
+      - ./data:/data
+
+  # This service tests the PyPI build with authentication disabled.
+  # Run with: docker-compose up -d --build wol-service-no-auth
+  wol-service-no-auth:
+    restart: always
+    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile.pypi
+      args:
+        # Installs the latest version from PyPI by default.
+        # You can pin to a version, e.g., INSTALL_TARGET=wol-service==0.1.0
+        INSTALL_TARGET: wol-service
+    ports:
+      # If you run this alongside other services, you'll need to change the host port.
+      - "${NO_AUTH_PORT:-25644}:${PORT:-25644}"
+    environment:
+      - HOST=${HOST:-0.0.0.0}
+      - PORT=${PORT:-25644}
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_USERNAME=
+      - ADMIN_PASSWORD=
+      - WOL_HOSTS_PATH=/data/hosts.json
+      - USERS_PATH=/data/users.json
+    volumes:
       - ./data:/data
