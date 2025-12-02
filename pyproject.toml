@@ -1,6 +1,6 @@
 [project]
 name = "wol-service"
-version = "0.1.0rc2"
+version = "0.1.0rc3"
 license = "MIT"
 description = "This is a simple Wakeup on LAN (WoL) service built using FastAPI. It provides an HTTP API and a web interface to wake up network devices over the local area network."
 readme = "README.md"
